@@ -1,0 +1,150 @@
+<!--
+	Test to a simple Mail box ~~~~~~~~~~~~~~~ SOLVED 
+	Copyright(c) NeuroSystems Technologies Pvt. Ltd. 2017
+-->
+<!DOCTYPE html>
+<html>
+	<head>
+			<title>NeuroSys JS Debug Test</title>
+			<style>
+				label{color:red;}
+				.mail-box {display:table;}
+				.mail-box .row {display:table-row;}
+				.mail-box .row > div {display:table-cell;}
+				.mail-box .head {color:blue; weight:200; background-color:#DDD; }
+			</style>
+			<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+	</head>
+	<body>
+		<input name="delete" value="Delete" type="button" /><br /><br />
+		<input type="checkbox" /><label>Select all Mails</label><br /><br />			<!--IMPROVE: Check box to select all mails -->
+		<div id="inbox1"><!-- dynamically generated inbox will come here --></div><br /><br />
+		<div id="inbox2"><!-- dynamically generated inbox2 will come here --></div>
+	</body>
+	<script>
+		var Mail = function(subject, body) {
+			this.subject = subject;
+			this.body = body;
+		};
+
+		function MailBox(name, domRef, mails) {
+			this.name = name;
+			this.mails = typeof mails=='undefined'?[] /* BUG: Should be [] */:mails.slice();	// BUG: Should be copy for each object
+			this.domRef = domRef; //JQuery ref String. Example: '#index'
+			
+			this._delete = function (mailSubject) {	 //BUG: Access object method 
+				let found = false;		//BUG : every time value of found must be false;
+				//IMPROVE: remove item from called object
+				for(var i=0; i<this.mails.length; i++) {
+					if (this.mails[i].subject === mailSubject) {
+						console.debug('[delete] '+mailSubject+' being deleted');
+						this.mails.splice(i, 1); // BUG: remove specific item not set that again
+						found = true;
+					}
+				} //end-for
+				if (found) {
+					this.render();
+				}
+				else {
+					alert('No entry worth deleting found');
+				}
+			};
+
+			this.render = function() {
+
+				var html='<div id="'+this.name+'" class="mail-box">'
+				+ '<div class="row">'
+					+ '<div class="head"></div>'
+					+ '<div class="head subject">Subject</div>'
+					+ '<div class="head subject"> | Content...</div>'
+				+ '</div>';
+				for(var m=0; m<this.mails.length; m++) {
+					let mail = this.mails[m];
+					/*BUG: Add new content with previous not replace*/
+					html += '<div class="row">'
+								+'<input type="checkbox" />'
+								+'<div class="subject">'+mail.subject+'</div>'
+								+'<div> | '+mail.body+'</div>'
+							+'</div>';
+				}
+				html += '</div>';
+				$(this.domRef).html(html);
+				//HINT: On re-render bindings will be lost !
+			};
+
+		};
+
+		$('input[name=delete]').click(function() {
+			try {
+				let deleted = false, clear = false;
+
+				$('input[type=checkbox]:checked').each(function() {
+					if ($(this).parent('.row').find('.head').length == 0) { //exclude head //BUG: head is a class not id
+						var subject = $(this).parent('.row').find('.subject').html();
+
+						//IMPROVE : confirmation window for delete all mails
+						if(subject == null){
+							if(confirm("Do you want to Delete All Mails")){
+								return true;
+							}
+							else{
+								$('input[type=checkbox]').prop('checked',false);
+								clear = true;
+								return false;
+							}
+						}
+						
+						//IMPROVE: find which MailBox instance's checkbox is selected
+						for(let i = 0; i < inbox.length; i++){
+							var InboxName = $(this).closest('#Inbox'+(i+1)).attr('id');
+							if(InboxName != null){
+								var InboxIndex = i;
+								break;
+							}
+						}
+
+						//IMPROVE: delete form selected instance
+						inbox[InboxIndex]._delete(subject);
+						
+
+						deleted = true;
+					}
+				});
+				if (! deleted && !clear) alert('No mails selected to delete');
+			}
+			catch(e) {
+				console.error(e);
+				alert('Some Error : '+e);
+			}
+		});
+
+		//Bind check-boxes
+			$('input[type=checkbox]').click(function() {
+				if ($(this).parent('.row').find('.head').length == 0) { //Check All toggle
+					var subject = $(this).parent('.row').find('.subject').html();
+					console.debug('[bindChecks] '+subject);
+					$('input[type=checkbox]').prop('checked', $(this).prop('checked'));
+				}
+			});
+
+		///////////// Setup Test Data
+		var mail_data = [
+			{'subject':'First Mail','body': 'hello world how are you'},
+			{'subject':'Second Mail','body': 'I am fine'},
+			{'subject':'Third Mail','body': 'Glad to know you are fine'}
+		];	// BUG: Array is defining using brackets "[]" and object using "{}"
+
+		var mails = [];
+		for (var m=0; m<mail_data.length; m++) {
+			let md = mail_data[m];
+			mails.push(new Mail(md.subject, md.body/* BUG: object access by . operator*/)); // BUG: Add anything to array using push method
+		}
+
+		// IMPROVE: TO use multiple MailBox instance
+		var inbox = [];
+		for(let i = 0; i < 2; i++){
+			inbox[i] = new MailBox('Inbox'+(i+1), '#inbox'+(i+1), mails);
+			inbox[i].render();
+		}
+	</script>
+</html>
